@@ -1,0 +1,1787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#141815" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>MycoWood 3D Mobile</title>
+  <style>
+    :root {
+      --bg-dark: #121613;
+      --panel-bg: #1b211c;
+      --panel-card: #151a16;
+      --panel-border: #2c362e;
+      --accent: #7cb342;
+      --accent-ai: #ab7ae6;
+      --accent-warm: #d97742;
+      --text-main: #ebf2ec;
+      --text-muted: #98a89b;
+      --danger: #e5534b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Roboto, system-ui, -apple-system, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    input, textarea, select {
+      user-select: auto;
+    }
+
+    body {
+      background: var(--bg-dark);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+      touch-action: none;
+    }
+
+    /* Top 3D Viewport Area */
+    #viewport {
+      position: relative;
+      width: 100%;
+      height: 52dvh;
+      flex-shrink: 0;
+      background: #121613;
+      border-bottom: 1px solid var(--panel-border);
+    }
+
+    #canvas-container {
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+    }
+
+    /* Compact Mobile HUD Overlays */
+    .hud-top {
+      position: absolute;
+      top: env(safe-area-inset-top, 10px);
+      left: 10px;
+      right: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      pointer-events: none;
+      gap: 6px;
+    }
+
+    .stats-pill {
+      background: rgba(21, 26, 22, 0.86);
+      backdrop-filter: blur(6px);
+      border: 1px solid var(--panel-border);
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 0.72rem;
+      line-height: 1.35;
+      pointer-events: auto;
+    }
+
+    .stats-pill strong {
+      color: #a5d66c;
+      font-variant-numeric: tabular-nums;
+      display: block;
+      font-size: 0.78rem;
+    }
+
+    .hud-actions {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      pointer-events: auto;
+    }
+
+    .hud-btn {
+      background: rgba(21, 26, 22, 0.88);
+      color: var(--text-main);
+      border: 1px solid var(--panel-border);
+      padding: 7px 10px;
+      border-radius: 8px;
+      font-size: 0.74rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .hud-btn.active {
+      border-color: var(--accent-warm);
+      background: rgba(217, 119, 66, 0.28);
+      color: #ffd0b8;
+    }
+
+    .hud-bottom-bar {
+      position: absolute;
+      bottom: 8px;
+      left: 10px;
+      right: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      pointer-events: none;
+    }
+
+    .touch-hint {
+      background: rgba(21, 26, 22, 0.78);
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    /* Bottom Drawer & Tab Content */
+    #drawer {
+      flex: 1;
+      background: var(--panel-bg);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .tab-panels {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 14px 20px 14px;
+      touch-action: pan-y;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .tab-pane {
+      display: none;
+    }
+
+    .tab-pane.active {
+      display: block;
+    }
+
+    /* Cards & Controls */
+    .card {
+      background: var(--panel-card);
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+
+    .card.ai-card {
+      border-color: rgba(171, 122, 230, 0.45);
+      background: linear-gradient(160deg, #1d1927 0%, #151a16 100%);
+    }
+
+    .card-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--accent);
+      font-weight: 700;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .ai-prompt-box {
+      width: 100%;
+      background: #101311;
+      color: var(--text-main);
+      border: 1px solid #3c334d;
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 0.88rem;
+      min-height: 58px;
+      margin-bottom: 8px;
+      resize: none;
+    }
+
+    .btn-ai {
+      width: 100%;
+      background: linear-gradient(90deg, #8e55d9, #6875e5);
+      color: #fff;
+      border: none;
+      padding: 11px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.88rem;
+      cursor: pointer;
+    }
+
+    .ai-status {
+      font-size: 0.74rem;
+      color: #cda8ff;
+      margin-top: 6px;
+    }
+
+    .api-drawer {
+      display: none;
+      margin-bottom: 8px;
+      padding: 8px;
+      background: #101311;
+      border-radius: 6px;
+      border: 1px solid var(--panel-border);
+      font-size: 0.74rem;
+      color: var(--text-muted);
+    }
+
+    .api-drawer.open {
+      display: block;
+    }
+
+    .text-input {
+      width: 100%;
+      background: #101311;
+      color: var(--text-main);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      padding: 9px 10px;
+      font-size: 0.86rem;
+    }
+
+    /* Preset Grid */
+    .preset-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .preset-wrap {
+      position: relative;
+      display: flex;
+    }
+
+    .preset-btn {
+      width: 100%;
+      background: #232c25;
+      color: var(--text-main);
+      border: 1px solid var(--panel-border);
+      padding: 10px 26px 10px 10px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      text-align: left;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .preset-btn.active {
+      background: rgba(124, 179, 66, 0.22);
+      border-color: var(--accent);
+      color: #c8eb9e;
+      font-weight: 600;
+    }
+
+    .preset-del {
+      position: absolute;
+      right: 4px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      padding: 6px;
+      font-size: 0.85rem;
+    }
+
+    .row-flex {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .btn-save {
+      background: #2e3d29;
+      color: #b7e887;
+      border: 1px solid #4d6b42;
+      padding: 9px 14px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .btn-outline {
+      flex: 1;
+      background: #212823;
+      color: var(--text-main);
+      border: 1px solid var(--panel-border);
+      padding: 9px;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+
+    /* Touch Sliders */
+    .control-row {
+      margin-bottom: 14px;
+    }
+
+    .control-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .control-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.84rem;
+      margin-bottom: 6px;
+    }
+
+    .control-val {
+      color: #a5d66c;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 8px;
+      accent-color: var(--accent);
+      background: #2c362e;
+      border-radius: 6px;
+    }
+
+    select {
+      width: 100%;
+      padding: 10px;
+      background: #222a24;
+      color: var(--text-main);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      font-size: 0.88rem;
+    }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 0;
+      font-size: 0.86rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      margin-top: 8px;
+    }
+
+    .toggle-row input {
+      width: 20px;
+      height: 20px;
+      accent-color: var(--accent);
+    }
+
+    /* Export Buttons */
+    .btn-export-main {
+      width: 100%;
+      background: var(--accent);
+      color: #0d130e;
+      border: none;
+      padding: 14px;
+      border-radius: 10px;
+      font-size: 0.96rem;
+      font-weight: 800;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    /* Bottom Navigation Bar */
+    .bottom-nav {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      background: #141915;
+      border-top: 1px solid var(--panel-border);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      flex-shrink: 0;
+    }
+
+    .nav-tab {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      padding: 10px 4px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      cursor: pointer;
+    }
+
+    .nav-tab span.icon {
+      font-size: 1.1rem;
+    }
+
+    .nav-tab.active {
+      color: #a5d66c;
+      background: rgba(124, 179, 66, 0.1);
+      border-top: 2px solid var(--accent);
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+  <!-- TOP 3D TOUCH VIEWPORT -->
+  <section id="viewport">
+    <div class="hud-top">
+      <div class="stats-pill">
+        <strong id="stat-dims">70 × 70 × 103 mm</strong>
+        <span id="stat-tris">12,400 tris</span> · <span id="stat-weight">~18g PLA</span>
+      </div>
+
+      <div class="hud-actions">
+        <button class="hud-btn" id="btn-lowpoly">🔷 Low-Poly</button>
+        <button class="hud-btn" id="btn-overhang">⚠️ 45°</button>
+        <button class="hud-btn" id="btn-mat-cycle">🎨 Wood</button>
+      </div>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <div class="hud-bottom-bar">
+      <div class="touch-hint">1-Finger: Orbit · 2-Finger: Pinch & Pan</div>
+      <div class="hud-actions">
+        <button class="hud-btn" id="btn-randomize">🎲 Seed</button>
+        <button class="hud-btn" id="btn-reset-cam">🎯 Reset View</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- BOTTOM TABBED CONTROLS DRAWER -->
+  <main id="drawer">
+    <div class="tab-panels">
+
+      <!-- TAB 1: AI & PRESETS -->
+      <div class="tab-pane active" id="tab-ai">
+        <div class="card ai-card">
+          <div class="card-title" style="color: #d0a8ff;">
+            <span>✨ AI 3D Generator</span>
+            <button class="hud-btn" id="btn-toggle-key" style="padding: 3px 8px; font-size: 0.68rem;">⚙️ API Key</button>
+          </div>
+
+          <div class="api-drawer" id="api-key-drawer">
+            <div style="margin-bottom: 5px;">Works offline automatically, or paste a Gemini API Key for live Three.js code synthesis:</div>
+            <input type="password" id="input-api-key" class="text-input" placeholder="AIza..." />
+          </div>
+
+          <textarea id="ai-prompt" class="ai-prompt-box" placeholder="Describe any model (e.g., 'low-poly witch mushroom lamp', 'gnarled oak bonsai planter', 'crystal quartz spire')..."></textarea>
+          <button class="btn-ai" id="btn-ai-generate">✨ Generate 3D Model</button>
+          <div class="ai-status" id="ai-status">Tap Generate to synthesize on the print bed.</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">
+            <span>📚 Saved Presets</span>
+            <span id="preset-count-badge" style="color: var(--text-muted); font-size: 0.7rem;"></span>
+          </div>
+
+          <div class="preset-grid" id="preset-grid"></div>
+
+          <div class="row-flex">
+            <input type="text" id="input-preset-name" class="text-input" placeholder="Name current model..." />
+            <button class="btn-save" id="btn-save-preset">💾 Save</button>
+          </div>
+
+          <div class="row-flex">
+            <button class="btn-outline" id="btn-export-presets">📤 Backup (.json)</button>
+            <button class="btn-outline" id="btn-import-presets">📥 Restore (.json)</button>
+            <input type="file" id="file-import-presets" accept=".json" style="display: none;" />
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: PRIMARY SHAPE & MUSHROOM CONTROLS -->
+      <div class="tab-pane" id="tab-shape">
+        <div class="card">
+          <div class="card-title">🍄 Cap, Stem & Profile</div>
+
+          <div class="control-row">
+            <div class="control-label"><span>Profile / Cap Style</span></div>
+            <select id="param-cap-style">
+              <option value="amanita">Amanita Dome (Classic)</option>
+              <option value="wizard">Woodland Witch Cap (Pointed)</option>
+              <option value="chanterelle">Chanterelle Trumpet (Flared)</option>
+              <option value="parasol">Broad Parasol Canopy</option>
+            </select>
+          </div>
+
+          <div class="control-row">
+            <div class="control-label">
+              <span>Diameter / Width</span>
+              <span class="control-val" id="val-cap-radius">70 mm</span>
+            </div>
+            <input type="range" id="param-cap-radius" min="30" max="140" step="2" value="70" />
+          </div>
+
+          <div class="control-row">
+            <div class="control-label">
+              <span>Cap / Feature Height</span>
+              <span class="control-val" id="val-cap-height">38 mm</span>
+            </div>
+            <input type="range" id="param-cap-height" min="15" max="95" step="1" value="38" />
+          </div>
+
+          <div class="control-row">
+            <div class="control-label">
+              <span>Trunk / Stem Height</span>
+              <span class="control-val" id="val-stem-height">65 mm</span>
+            </div>
+            <input type="range" id="param-stem-height" min="20" max="140" step="1" value="65" />
+          </div>
+
+          <div class="control-row">
+            <div class="control-label">
+              <span>Organic Stem Bend</span>
+              <span class="control-val" id="val-stem-bend">12 mm</span>
+            </div>
+            <input type="range" id="param-stem-bend" min="0" max="35" step="1" value="12" />
+          </div>
+
+          <div class="control-row">
+            <div class="control-label">
+              <span>Radial Gill Ridges (45° Safe)</span>
+              <span class="control-val" id="val-gills">36</span>
+            </div>
+            <input type="range" id="param-gills" min="0" max="72" step="4" value="36" />
+          </div>
+
+          <div class="control-row">
+            <div class="control-label">
+              <span>Cap Warts / Sub-Elements</span>
+              <span class="control-val" id="val-warts">18</span>
+            </div>
+            <input type="range" id="param-warts" min="0" max="45" step="1" value="18" />
+          </div>
+
+          <label class="toggle-row">
+            <span>Add Side Cluster Offshoots</span>
+            <input type="checkbox" id="param-cluster" checked />
+          </label>
+
+          <label class="toggle-row">
+            <span>Hollow LED Tea-Light Cavity (Ø38mm)</span>
+            <input type="checkbox" id="param-led-cavity" />
+          </label>
+        </div>
+      </div>
+
+      <!-- TAB 3: WOOD BARK & HOLLOWING -->
+      <div class="tab-pane" id="tab-bark">
+        <div class="card">
+          <div class="card-title">🪵 Bark Grain, Twist & Walls</div>
+
+          <div class="control-row">
+            <div class="control-label">
+              <span>Bark Ridge Depth</span>
+              <span class="control-val" id="val-bark-depth">2.8 mm</span>
+            </div>
+            <input type="range" id="param-bark-depth" min="0" max="8" step="0.2" value="2.8" />
+          </div>
+
+          <div class="control-row">
+            <div class="control-label">
+              <span>Bark Furrow Frequency</span>
+              <span class="control-val" id="val-bark-freq">14</span>
+            </div>
+            <input type="range" id="param-bark-freq" min="4" max="36" step="1" value="14" />
+          </div>
+
+          <div class="control-row">
+            <div class="control-label">
+              <span>Gnarl / Spiral Twist</span>
+              <span class="control-val" id="val-twist">0.8 rad</span>
+            </div>
+            <input type="range" id="param-twist" min="-2.5" max="2.5" step="0.1" value="0.8" />
+          </div>
+
+          <div class="control-row">
+            <div class="control-label">
+              <span>Root Flare / Base Width</span>
+              <span class="control-val" id="val-flare">1.35x</span>
+            </div>
+            <input type="range" id="param-flare" min="0.8" max="2.0" step="0.05" value="1.35" />
+          </div>
+
+          <div class="control-row">
+            <div class="control-label">
+              <span>Wall Thickness (Planter/Pod)</span>
+              <span class="control-val" id="val-wall">4.5 mm</span>
+            </div>
+            <input type="range" id="param-wall" min="2.0" max="12.0" step="0.5" value="4.5" />
+          </div>
+
+          <div class="control-row">
+            <div class="control-label">
+              <span>Mesh Resolution</span>
+              <span class="control-val" id="val-res">72 segs</span>
+            </div>
+            <input type="range" id="param-res" min="16" max="128" step="8" value="72" />
+          </div>
+
+          <div class="control-row">
+            <div class="control-label">
+              <span>Global Scale</span>
+              <span class="control-val" id="val-scale">1.00x</span>
+            </div>
+            <input type="range" id="param-scale" min="0.4" max="2.5" step="0.05" value="1.0" />
+          </div>
+
+          <label class="toggle-row">
+            <span>Auto-Flatten Bottom for Bed (Z=0)</span>
+            <input type="checkbox" id="param-flatten" checked />
+          </label>
+        </div>
+      </div>
+
+      <!-- TAB 4: EXPORT & SLICER TOOLS -->
+      <div class="tab-pane" id="tab-export">
+        <div class="card">
+          <div class="card-title">📦 3D Print Export (Millimeters, Z-Up)</div>
+          <button class="btn-export-main" id="btn-share-stl">📲 Share / Send .STL to Slicer</button>
+          <div class="row-flex">
+            <button class="btn-outline" id="btn-export-stl">⬇ Download .STL</button>
+            <button class="btn-outline" id="btn-export-obj">⬇ Download .OBJ</button>
+          </div>
+          <label class="toggle-row" style="margin-top: 12px;">
+            <span>Show Wireframe Mesh Overlay</span>
+            <input type="checkbox" id="chk-wireframe" />
+          </label>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- BOTTOM NAVIGATION TABS -->
+    <nav class="bottom-nav">
+      <button class="nav-tab active" data-tab="tab-ai">
+        <span class="icon">✨</span>
+        <span>AI & Presets</span>
+      </button>
+      <button class="nav-tab" data-tab="tab-shape">
+        <span class="icon">🍄</span>
+        <span>Shape</span>
+      </button>
+      <button class="nav-tab" data-tab="tab-bark">
+        <span class="icon">🪵</span>
+        <span>Bark & Scale</span>
+      </button>
+      <button class="nav-tab" data-tab="tab-export">
+        <span class="icon">📦</span>
+        <span>Export STL</span>
+      </button>
+    </nav>
+  </main>
+
+  <script>
+    // =========================================================================
+    // 1. GEOMETRY MERGER & 3D PROCEDURAL NOISE
+    // =========================================================================
+    function mergeGeometries(geos) {
+      const positions = [];
+      const indices = [];
+      let indexOffset = 0;
+
+      for (let gIdx = 0; gIdx < geos.length; gIdx++) {
+        const g = geos[gIdx];
+        if (!g || !g.attributes || !g.attributes.position) continue;
+        const pos = g.attributes.position;
+        for (let i = 0; i < pos.count; i++) {
+          positions.push(pos.getX(i), pos.getY(i), pos.getZ(i));
+        }
+        if (g.index) {
+          const idx = g.index.array;
+          for (let i = 0; i < idx.length; i++) indices.push(idx[i] + indexOffset);
+        } else {
+          for (let i = 0; i < pos.count; i++) indices.push(i + indexOffset);
+        }
+        indexOffset += pos.count;
+      }
+
+      const merged = new THREE.BufferGeometry();
+      merged.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      merged.setIndex(indices);
+      merged.computeVertexNormals();
+      return merged;
+    }
+
+    let seedOffset = 42.137;
+    function hash3(x, y, z) {
+      const n = Math.sin(x * 127.1 + y * 311.7 + z * 74.7 + seedOffset) * 43758.5453123;
+      return n - Math.floor(n);
+    }
+
+    function smoothNoise3D(x, y, z) {
+      const ix = Math.floor(x), iy = Math.floor(y), iz = Math.floor(z);
+      const fx = x - ix, fy = y - iy, fz = z - iz;
+      const ux = fx * fx * (3 - 2 * fx);
+      const uy = fy * fy * (3 - 2 * fy);
+      const uz = fz * fz * (3 - 2 * fz);
+
+      const n000 = hash3(ix, iy, iz), n100 = hash3(ix + 1, iy, iz);
+      const n010 = hash3(ix, iy + 1, iz), n110 = hash3(ix + 1, iy + 1, iz);
+      const n001 = hash3(ix, iy, iz + 1), n101 = hash3(ix + 1, iy, iz + 1);
+      const n011 = hash3(ix, iy + 1, iz + 1), n111 = hash3(ix + 1, iy + 1, iz + 1);
+
+      const nx00 = n000 + ux * (n100 - n000), nx10 = n010 + ux * (n110 - n010);
+      const nx01 = n001 + ux * (n101 - n001), nx11 = n011 + ux * (n111 - n011);
+      const nxy0 = nx00 + uy * (nx10 - nx00), nxy1 = nx01 + uy * (nx11 - nx01);
+
+      return (nxy0 + uz * (nxy1 - nxy0)) * 2 - 1;
+    }
+
+    function barkNoise(angle, yNorm, freq, twist) {
+      const twistedAngle = angle + yNorm * twist;
+      const primary = Math.sin(twistedAngle * freq + smoothNoise3D(Math.cos(angle) * 2, yNorm * 4, Math.sin(angle) * 2) * 2.5);
+      const secondary = smoothNoise3D(Math.cos(twistedAngle) * 3, yNorm * 8, Math.sin(twistedAngle) * 3);
+      return 0.65 * primary + 0.35 * secondary;
+    }
+
+    // =========================================================================
+    // 2. THREE.JS SCENE & MULTI-TOUCH MOBILE CAMERA CONTROLLER
+    // =========================================================================
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x121613);
+
+    const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 1, 2500);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    container.appendChild(renderer.domElement);
+
+    const camState = {
+      theta: 0.68,
+      phi: 1.08,
+      radius: 225,
+      target: new THREE.Vector3(0, 42, 0),
+      isDown: false,
+      button: 0,
+      lastX: 0,
+      lastY: 0,
+      lastPinchDist: 0
+    };
+
+    function updateCameraPosition() {
+      camState.phi = Math.max(0.08, Math.min(Math.PI - 0.08, camState.phi));
+      camState.radius = Math.max(45, Math.min(700, camState.radius));
+      camera.position.x = camState.target.x + camState.radius * Math.sin(camState.phi) * Math.sin(camState.theta);
+      camera.position.y = camState.target.y + camState.radius * Math.cos(camState.phi);
+      camera.position.z = camState.target.z + camState.radius * Math.sin(camState.phi) * Math.cos(camState.theta);
+      camera.lookAt(camState.target);
+    }
+    updateCameraPosition();
+
+    // Touch Events (1-Finger Orbit, 2-Finger Pinch Zoom & 2-Finger Pan)
+    renderer.domElement.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      if (e.touches.length === 1) {
+        camState.isDown = true;
+        camState.lastX = e.touches[0].clientX;
+        camState.lastY = e.touches[0].clientY;
+      } else if (e.touches.length === 2) {
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        camState.lastPinchDist = Math.hypot(dx, dy);
+        camState.lastX = (e.touches[0].clientX + e.touches[1].clientX) * 0.5;
+        camState.lastY = (e.touches[0].clientY + e.touches[1].clientY) * 0.5;
+      }
+    }, { passive: false });
+
+    renderer.domElement.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      if (e.touches.length === 1 && camState.isDown) {
+        const dx = e.touches[0].clientX - camState.lastX;
+        const dy = e.touches[0].clientY - camState.lastY;
+        camState.lastX = e.touches[0].clientX;
+        camState.lastY = e.touches[0].clientY;
+        camState.theta -= dx * 0.009;
+        camState.phi -= dy * 0.009;
+        updateCameraPosition();
+      } else if (e.touches.length === 2) {
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const dist = Math.hypot(dx, dy);
+        const midX = (e.touches[0].clientX + e.touches[1].clientX) * 0.5;
+        const midY = (e.touches[0].clientY + e.touches[1].clientY) * 0.5;
+
+        if (camState.lastPinchDist > 0) {
+          const deltaDist = camState.lastPinchDist - dist;
+          camState.radius += deltaDist * 0.65;
+        }
+
+        const panX = midX - camState.lastX;
+        const panY = midY - camState.lastY;
+        const right = new THREE.Vector3();
+        camera.getWorldDirection(right);
+        right.cross(new THREE.Vector3(0, 1, 0)).normalize();
+        camState.target.addScaledVector(right, -panX * 0.22);
+        camState.target.y += panY * 0.22;
+
+        camState.lastPinchDist = dist;
+        camState.lastX = midX;
+        camState.lastY = midY;
+        updateCameraPosition();
+      }
+    }, { passive: false });
+
+    renderer.domElement.addEventListener('touchend', () => {
+      camState.isDown = false;
+      camState.lastPinchDist = 0;
+    });
+
+    // Desktop Mouse Fallback
+    renderer.domElement.addEventListener('mousedown', (e) => {
+      camState.isDown = true;
+      camState.button = e.button;
+      camState.lastX = e.clientX;
+      camState.lastY = e.clientY;
+    });
+    window.addEventListener('mouseup', () => { camState.isDown = false; });
+    window.addEventListener('mousemove', (e) => {
+      if (!camState.isDown) return;
+      const dx = e.clientX - camState.lastX;
+      const dy = e.clientY - camState.lastY;
+      camState.lastX = e.clientX;
+      camState.lastY = e.clientY;
+      if (camState.button === 0) {
+        camState.theta -= dx * 0.008;
+        camState.phi -= dy * 0.008;
+      } else {
+        const right = new THREE.Vector3();
+        camera.getWorldDirection(right);
+        right.cross(new THREE.Vector3(0, 1, 0)).normalize();
+        camState.target.addScaledVector(right, -dx * 0.25);
+        camState.target.y += dy * 0.25;
+      }
+      updateCameraPosition();
+    });
+    renderer.domElement.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      camState.radius += e.deltaY * 0.18;
+      updateCameraPosition();
+    }, { passive: false });
+    renderer.domElement.addEventListener('contextmenu', (e) => e.preventDefault());
+
+    document.getElementById('btn-reset-cam').addEventListener('click', () => {
+      camState.theta = 0.68;
+      camState.phi = 1.08;
+      camState.radius = 225;
+      camState.target.set(0, 42, 0);
+      updateCameraPosition();
+    });
+
+    // Lighting & 200x200mm Print Bed
+    scene.add(new THREE.HemisphereLight(0xeff5eb, 0x2a332b, 0.95));
+    const dirLight = new THREE.DirectionalLight(0xfff4e0, 1.25);
+    dirLight.position.set(120, 200, 110);
+    scene.add(dirLight);
+    const rimLight = new THREE.DirectionalLight(0x7cb342, 0.45);
+    rimLight.position.set(-120, 60, -100);
+    scene.add(rimLight);
+
+    scene.add(new THREE.GridHelper(200, 20, 0x5c8a32, 0x29332b));
+    const bedGeo = new THREE.PlaneGeometry(200, 200);
+    bedGeo.rotateX(-Math.PI / 2);
+    const bedMesh = new THREE.Mesh(bedGeo, new THREE.MeshBasicMaterial({ color: 0x1a211c, transparent: true, opacity: 0.55, side: THREE.DoubleSide }));
+    bedMesh.position.y = -0.1;
+    scene.add(bedMesh);
+
+    const finishes = [
+      { name: 'Wood', color: 0xb88658, roughness: 0.78, metalness: 0.05 },
+      { name: 'Moss', color: 0x5d8247, roughness: 0.65, metalness: 0.05 },
+      { name: 'Amanita', color: 0xc85a3c, roughness: 0.52, metalness: 0.08 },
+      { name: 'Bone', color: 0xe6dec8, roughness: 0.35, metalness: 0.15 },
+      { name: 'Crystal', color: 0x9b6bd6, roughness: 0.25, metalness: 0.2 }
+    ];
+    let currentFinishIndex = 0;
+
+    const standardMaterial = new THREE.MeshStandardMaterial({
+      color: finishes[0].color,
+      roughness: finishes[0].roughness,
+      metalness: finishes[0].metalness,
+      flatShading: false
+    });
+
+    const overhangMaterial = new THREE.ShaderMaterial({
+      vertexShader: `
+        varying vec3 vWorldNormal;
+        void main() {
+          vWorldNormal = normalize(mat3(modelMatrix) * normal);
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        varying vec3 vWorldNormal;
+        void main() {
+          vec3 n = normalize(vWorldNormal);
+          vec3 lightDir = normalize(vec3(0.5, 0.8, 0.6));
+          float diff = max(dot(n, lightDir), 0.25);
+          if (n.y < -0.71 && n.y > -0.995) {
+            gl_FragColor = vec4(0.92, 0.24, 0.22, 1.0);
+          } else if (n.y < -0.5 && n.y >= -0.71) {
+            gl_FragColor = vec4(vec3(0.92, 0.65, 0.22) * diff, 1.0);
+          } else {
+            gl_FragColor = vec4(vec3(0.45, 0.72, 0.38) * diff, 1.0);
+          }
+        }
+      `
+    });
+
+    let currentMesh = null;
+    let currentMode = 'mushroom';
+    let customAICode = null;
+    let showOverhangs = false;
+    let showWireframe = false;
+    let isLowPoly = false;
+
+    // =========================================================================
+    // 3. 3D NATURE & AI GEOMETRY GENERATORS
+    // =========================================================================
+    function buildSingleMushroom(params, scaleFactor, offsetX, offsetZ, tiltZ) {
+      const radialSegs = params.res;
+      const heightSegs = Math.max(12, Math.floor(params.res * 0.75));
+      const R = params.capRadius * 0.5 * scaleFactor;
+      const H = params.capHeight * scaleFactor;
+      const stemH = params.stemHeight * scaleFactor;
+      const bend = params.stemBend * scaleFactor;
+      const stemBaseR = R * 0.34;
+      const stemTopR = R * 0.22;
+
+      const geometries = [];
+      const totalRings = heightSegs * 2;
+      const positions = [], indices = [];
+
+      for (let i = 0; i <= totalRings; i++) {
+        const t = i / totalRings;
+        for (let j = 0; j <= radialSegs; j++) {
+          const theta = (j / radialSegs) * Math.PI * 2;
+          const cosT = Math.cos(theta), sinT = Math.sin(theta);
+          let r = 0, y = 0, shiftX = 0;
+
+          if (t <= 0.5) {
+            const st = t / 0.5;
+            y = st * stemH;
+            shiftX = Math.sin(st * Math.PI * 0.7) * bend;
+            const rootFlare = Math.pow(1 - st, 3) * (params.flare - 1.0) * stemBaseR;
+            r = THREE.MathUtils.lerp(stemBaseR, stemTopR, st) + rootFlare;
+            r += barkNoise(theta, st, params.barkFreq, params.twist * 0.5) * (params.barkDepth * 0.35 * scaleFactor);
+            if (params.gills > 0 && st > 0.75) {
+              r += Math.max(0, Math.cos(theta * params.gills)) * ((st - 0.75) / 0.25) * (R * 0.08);
+            }
+          } else if (t <= 0.68) {
+            const gt = (t - 0.5) / 0.18;
+            shiftX = Math.sin(0.7 * Math.PI) * bend;
+            r = THREE.MathUtils.lerp(stemTopR, R, gt);
+            y = stemH + gt * ((R - stemTopR) * 0.42);
+            if (params.gills > 0) {
+              const env = Math.sin(gt * Math.PI);
+              const g1 = Math.pow(0.5 + 0.5 * Math.cos(theta * params.gills), 2.0);
+              const g2 = Math.pow(0.5 + 0.5 * Math.cos(theta * params.gills * 2), 3.0) * 0.45;
+              y -= (g1 + g2) * env * (3.2 * scaleFactor);
+            }
+          } else {
+            const ct = (t - 0.68) / 0.32;
+            shiftX = Math.sin(0.7 * Math.PI) * bend;
+            const rimBaseY = stemH + (R - stemTopR) * 0.42;
+            r = R * Math.cos(ct * Math.PI * 0.5);
+
+            if (params.capStyle === 'amanita') {
+              y = rimBaseY + Math.sin(ct * Math.PI * 0.5) * H;
+            } else if (params.capStyle === 'wizard') {
+              r = R * Math.pow(1 - ct, 1.35);
+              y = rimBaseY + Math.pow(ct, 0.85) * (H * 1.45);
+              shiftX += Math.pow(ct, 2) * (bend * 0.8);
+            } else if (params.capStyle === 'chanterelle') {
+              r = R * (1 - ct * 0.88);
+              y = rimBaseY + Math.sin(ct * Math.PI * 0.8) * (H * 0.55) - Math.pow(ct, 2) * (H * 0.35);
+            } else {
+              y = rimBaseY + (Math.sin(ct * Math.PI * 0.5) * 0.65 + Math.pow(ct, 3) * 0.35) * H;
+            }
+            y += smoothNoise3D(cosT * 2, sinT * 2, 1.5) * (1 - ct) * 3.5 * scaleFactor;
+            r += smoothNoise3D(cosT * 3, sinT * 3, ct * 2) * (1 - ct) * 2.2 * scaleFactor;
+          }
+
+          let px = shiftX + r * cosT, py = y, pz = r * sinT;
+          if (tiltZ !== 0) {
+            const cosZ = Math.cos(tiltZ), sinZ = Math.sin(tiltZ);
+            const rx = px * cosZ - py * sinZ;
+            const ry = px * sinZ + py * cosZ;
+            px = rx; py = ry;
+          }
+          positions.push(px + offsetX, py, pz + offsetZ);
+        }
+      }
+
+      const stride = radialSegs + 1;
+      for (let i = 0; i < totalRings; i++) {
+        for (let j = 0; j < radialSegs; j++) {
+          const a = i * stride + j, b = a + stride, c = a + 1, d = b + 1;
+          indices.push(a, c, b, c, d, b);
+        }
+      }
+
+      const bottomCenterIdx = positions.length / 3;
+      if (params.ledCavity && scaleFactor === 1.0) {
+        const cavR = Math.min(19.2, stemBaseR * 0.78);
+        const cavH = Math.min(18.0, stemH * 0.45);
+        const ringStart = positions.length / 3;
+        for (let j = 0; j <= radialSegs; j++) {
+          const theta = (j / radialSegs) * Math.PI * 2;
+          positions.push(Math.cos(theta) * cavR + offsetX, 0, Math.sin(theta) * cavR + offsetZ);
+        }
+        const innerTopStart = positions.length / 3;
+        for (let j = 0; j <= radialSegs; j++) {
+          const theta = (j / radialSegs) * Math.PI * 2;
+          positions.push(Math.cos(theta) * (cavR * 0.85) + offsetX, cavH, Math.sin(theta) * (cavR * 0.85) + offsetZ);
+        }
+        const topCenterIdx = positions.length / 3;
+        positions.push(offsetX, cavH + 4, offsetZ);
+        for (let j = 0; j < radialSegs; j++) {
+          indices.push(j, ringStart + j, j + 1, j + 1, ringStart + j, ringStart + j + 1);
+          indices.push(ringStart + j, innerTopStart + j, ringStart + j + 1, ringStart + j + 1, innerTopStart + j, innerTopStart + j + 1);
+          indices.push(innerTopStart + j, topCenterIdx, innerTopStart + j + 1);
+        }
+      } else {
+        positions.push(offsetX, 0, offsetZ);
+        for (let j = 0; j < radialSegs; j++) indices.push(j, bottomCenterIdx, j + 1);
+      }
+
+      const bodyGeo = new THREE.BufferGeometry();
+      bodyGeo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      bodyGeo.setIndex(indices);
+      geometries.push(bodyGeo);
+
+      if (params.warts > 0 && params.capStyle !== 'chanterelle') {
+        const rimBaseY = stemH + (R - stemTopR) * 0.42;
+        const maxShiftX = Math.sin(0.7 * Math.PI) * bend;
+        const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+        const wartSegs = isLowPoly ? 6 : 10;
+
+        for (let w = 0; w < params.warts; w++) {
+          const ct = 0.15 + 0.72 * Math.sqrt((w + 0.5) / params.warts);
+          const theta = w * goldenAngle + seedOffset;
+          const rPos = R * Math.cos(ct * Math.PI * 0.5);
+          let yPos = rimBaseY + Math.sin(ct * Math.PI * 0.5) * H;
+          if (params.capStyle === 'wizard') yPos = rimBaseY + Math.pow(ct, 0.85) * (H * 1.45);
+
+          const wartSize = (2.2 + (hash3(w, 1, 2) * 2.4)) * scaleFactor;
+          const wartGeo = new THREE.SphereGeometry(wartSize, wartSegs, 6);
+          wartGeo.scale(1.2, 0.55, 1.2);
+
+          let wx = maxShiftX + rPos * Math.cos(theta), wy = yPos, wz = rPos * Math.sin(theta);
+          if (tiltZ !== 0) {
+            const rx = wx * Math.cos(tiltZ) - wy * Math.sin(tiltZ);
+            const ry = wx * Math.sin(tiltZ) + wy * Math.cos(tiltZ);
+            wx = rx; wy = ry;
+          }
+          wartGeo.translate(wx + offsetX, wy, wz + offsetZ);
+          geometries.push(wartGeo);
+        }
+      }
+      return mergeGeometries(geometries);
+    }
+
+    function buildBarkPlanter(params) {
+      const radialSegs = params.res;
+      const heightSegs = Math.max(12, Math.floor(params.res * 0.8));
+      const outerR = params.capRadius * 0.55;
+      const height = params.stemHeight * 1.2;
+      const wall = params.wall;
+      const floorThickness = Math.max(4.0, wall);
+      const positions = [], indices = [];
+      const totalRings = heightSegs * 2 + 2;
+
+      for (let i = 0; i <= totalRings; i++) {
+        const t = i / totalRings;
+        for (let j = 0; j <= radialSegs; j++) {
+          const theta = (j / radialSegs) * Math.PI * 2;
+          let r = outerR, y = 0;
+          if (t <= 0.48) {
+            const ht = t / 0.48;
+            y = ht * height;
+            const rootFlare = Math.pow(1 - ht, 2.5) * (params.flare - 1.0) * outerR * Math.max(0.2, 0.5 + 0.5 * Math.cos(theta * 5));
+            const bark = barkNoise(theta, ht, params.barkFreq, params.twist) * params.barkDepth;
+            const organicWave = smoothNoise3D(Math.cos(theta) * 1.5, ht * 2.0, Math.sin(theta) * 1.5) * 3.5;
+            r = outerR + rootFlare + bark + organicWave;
+          } else if (t <= 0.52) {
+            const rt = (t - 0.48) / 0.04;
+            const rimNoise = smoothNoise3D(Math.cos(theta) * 2, 2.0, Math.sin(theta) * 2) * 3.5;
+            y = height + Math.sin(rt * Math.PI) * 1.5 + rimNoise * (1 - rt * 0.5);
+            const outerRimR = outerR + barkNoise(theta, 1.0, params.barkFreq, params.twist) * params.barkDepth + rimNoise;
+            r = THREE.MathUtils.lerp(outerRimR, Math.max(8, outerR - wall), rt);
+          } else {
+            const it = (t - 0.52) / 0.48;
+            y = THREE.MathUtils.lerp(height, floorThickness, it);
+            r = Math.max(8, outerR - wall) * (1 - it * 0.06);
+          }
+          positions.push(r * Math.cos(theta), y, r * Math.sin(theta));
+        }
+      }
+
+      const stride = radialSegs + 1;
+      for (let i = 0; i < totalRings; i++) {
+        for (let j = 0; j < radialSegs; j++) {
+          const a = i * stride + j, b = a + stride, c = a + 1, d = b + 1;
+          indices.push(a, c, b, c, d, b);
+        }
+      }
+
+      const bottomCenterIdx = positions.length / 3;
+      positions.push(0, 0, 0);
+      const innerCenterIdx = positions.length / 3;
+      positions.push(0, floorThickness, 0);
+      const lastRingOffset = totalRings * stride;
+      for (let j = 0; j < radialSegs; j++) {
+        indices.push(j, bottomCenterIdx, j + 1);
+        indices.push(lastRingOffset + j + 1, innerCenterIdx, lastRingOffset + j);
+      }
+
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      geo.setIndex(indices);
+      geo.computeVertexNormals();
+      return geo;
+    }
+
+    function buildShelfFungiLog(params) {
+      const geometries = [];
+      const logRadius = params.capRadius * 0.42;
+      const logLength = params.stemHeight * 1.65;
+      const logGeo = new THREE.CylinderGeometry(logRadius, logRadius * 1.08, logLength, params.res, 32, false);
+      logGeo.rotateZ(Math.PI / 2);
+
+      const pos = logGeo.attributes.position;
+      for (let i = 0; i < pos.count; i++) {
+        let x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+        const angle = Math.atan2(z, y);
+        const bark = barkNoise(angle, (x / logLength) + 0.5, params.barkFreq, params.twist) * params.barkDepth;
+        const dist = Math.sqrt(y * y + z * z);
+        if (dist > 0.001) { y += (y / dist) * bark; z += (z / dist) * bark; }
+        y += logRadius * 0.75;
+        if (y < 0) y = 0;
+        pos.setXYZ(i, x, y, z);
+      }
+      geometries.push(logGeo);
+
+      const shelfCount = Math.max(3, Math.floor(params.warts / 3));
+      for (let s = 0; s < shelfCount; s++) {
+        const shelfR = 14 + (s % 3) * 6;
+        const shelfGeo = new THREE.CylinderGeometry(shelfR, shelfR * 0.35, 7, Math.min(28, params.res), 6);
+        const side = s % 2 === 0 ? 1 : -1;
+        const xOffset = ((s / Math.max(1, shelfCount - 1)) - 0.5) * (logLength * 0.72);
+        const yOffset = logRadius * (0.45 + 0.35 * hash3(s, 2, 3));
+        shelfGeo.translate(xOffset, yOffset, side * (logRadius * 0.78));
+        geometries.push(shelfGeo);
+      }
+      return mergeGeometries(geometries);
+    }
+
+    function buildAcornPod(params) {
+      const radialSegs = params.res;
+      const heightSegs = Math.max(16, Math.floor(params.res * 0.85));
+      const maxR = params.capRadius * 0.55;
+      const totalH = params.stemHeight * 1.25;
+      const positions = [], indices = [];
+
+      for (let i = 0; i <= heightSegs; i++) {
+        const v = i / heightSegs;
+        for (let j = 0; j <= radialSegs; j++) {
+          const theta = (j / radialSegs) * Math.PI * 2;
+          let r = 0, y = v * totalH;
+          if (v < 0.62) {
+            const nv = v / 0.62;
+            r = maxR * Math.sin(nv * Math.PI * 0.72 + 0.28) + barkNoise(theta, nv, params.barkFreq, 0.2) * (params.barkDepth * 0.25);
+          } else if (v < 0.90) {
+            const cv = (v - 0.62) / 0.28;
+            const cupBaseR = maxR * 1.08 * Math.cos(cv * Math.PI * 0.46);
+            const diamond = Math.sin(theta * params.barkFreq + cv * 18) * Math.sin(theta * params.barkFreq - cv * 18);
+            r = cupBaseR + Math.abs(diamond) * (params.barkDepth * 1.15);
+          } else {
+            r = maxR * 0.14 * (1 - ((v - 0.90) / 0.10) * 0.4);
+          }
+          if (v < 0.04) { y = 0; r = maxR * 0.38 * (v / 0.04); }
+          positions.push(r * Math.cos(theta), y, r * Math.sin(theta));
+        }
+      }
+
+      const stride = radialSegs + 1;
+      for (let i = 0; i < heightSegs; i++) {
+        for (let j = 0; j < radialSegs; j++) {
+          const a = i * stride + j, b = a + stride, c = a + 1, d = b + 1;
+          indices.push(a, c, b, c, d, b);
+        }
+      }
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      geo.setIndex(indices);
+      geo.computeVertexNormals();
+      return geo;
+    }
+
+    function buildCrystalCluster(params) {
+      const geometries = [];
+      const count = Math.max(3, Math.min(20, Math.floor(params.warts * 0.7) + 4));
+      const baseR = params.capRadius * 0.28;
+      const mainH = params.stemHeight * 1.25;
+
+      for (let c = 0; c < count; c++) {
+        const isCenter = c === 0;
+        const scale = isCenter ? 1.0 : 0.35 + hash3(c, 4, 1) * 0.55;
+        const sides = Math.max(5, Math.min(8, Math.floor(params.barkFreq / 2)));
+        const r = baseR * scale * (0.65 + hash3(c, 2, 7) * 0.35);
+        const h = mainH * scale;
+
+        const spireGeo = new THREE.CylinderGeometry(r * 0.85, r * params.flare * 0.8, h, sides, 1, false);
+        spireGeo.translate(0, h * 0.5, 0);
+        const tipH = params.capHeight * 0.55 * scale;
+        const tipGeo = new THREE.ConeGeometry(r * 0.85, tipH, sides, 1);
+        tipGeo.translate(0, h + tipH * 0.5, 0);
+
+        const combined = mergeGeometries([spireGeo, tipGeo]);
+        if (!isCenter) {
+          const angle = (c / (count - 1)) * Math.PI * 2 + hash3(c, 1, 9) * 0.5;
+          combined.rotateZ(0.18 + hash3(c, 8, 2) * 0.38);
+          combined.rotateY(angle);
+          const dist = baseR * (0.45 + hash3(c, 3, 3) * 0.55);
+          combined.translate(Math.cos(angle) * dist, 0, Math.sin(angle) * dist);
+        }
+        geometries.push(combined);
+      }
+      return mergeGeometries(geometries);
+    }
+
+    function buildLotusVessel(params) {
+      const geometries = [buildBarkPlanter(params)];
+      const layers = 3;
+      const petalsPerLayer = Math.max(6, Math.min(18, params.barkFreq));
+      const outerR = params.capRadius * 0.55;
+      const height = params.stemHeight * 1.1;
+
+      for (let l = 0; l < layers; l++) {
+        const lNorm = (l + 0.5) / layers;
+        for (let p = 0; p < petalsPerLayer; p++) {
+          const theta = ((p + (l % 2) * 0.5) / petalsPerLayer) * Math.PI * 2;
+          const petalGeo = new THREE.ConeGeometry(outerR * 0.26, height * 0.42, isLowPoly ? 4 : 8, 3);
+          petalGeo.scale(1.0, 1.0, 0.35);
+          petalGeo.rotateX(0.32 + l * 0.12);
+          petalGeo.rotateY(-theta + Math.PI * 0.5);
+          const rad = outerR * (0.95 + l * 0.08);
+          petalGeo.translate(Math.cos(theta) * rad, height * (0.22 + lNorm * 0.52), Math.sin(theta) * rad);
+          geometries.push(petalGeo);
+        }
+      }
+      return mergeGeometries(geometries);
+    }
+
+    // =========================================================================
+    // 4. PRESET LIBRARY & STORAGE
+    // =========================================================================
+    const STORAGE_KEY = 'mycowood_mobile_presets_v1';
+    const defaultPresets = [
+      {
+        id: 'm_mushroom', name: '🍄 Mushroom Cluster', builtin: true, mode: 'mushroom', seed: 42.137, finish: 0, lowPoly: false,
+        params: { res: 72, scale: 1.0, capStyle: 'amanita', capRadius: 70, capHeight: 38, stemHeight: 65, stemBend: 12, gills: 36, warts: 18, cluster: true, ledCavity: false, barkDepth: 2.8, barkFreq: 14, twist: 0.8, flare: 1.35, wall: 4.5, flatten: true }
+      },
+      {
+        id: 'm_planter', name: '🪵 Bark Planter', builtin: true, mode: 'planter', seed: 19.42, finish: 0, lowPoly: false,
+        params: { res: 72, scale: 1.0, capStyle: 'amanita', capRadius: 86, capHeight: 38, stemHeight: 72, stemBend: 8, gills: 12, warts: 10, cluster: false, ledCavity: false, barkDepth: 4.2, barkFreq: 16, twist: 1.1, flare: 1.45, wall: 5.0, flatten: true }
+      },
+      {
+        id: 'm_lowpoly_witch', name: '✨ Low-Poly Lamp', builtin: true, mode: 'mushroom', seed: 128.9, finish: 2, lowPoly: true,
+        params: { res: 24, scale: 1.05, capStyle: 'wizard', capRadius: 80, capHeight: 54, stemHeight: 72, stemBend: 18, gills: 20, warts: 12, cluster: true, ledCavity: true, barkDepth: 2.4, barkFreq: 8, twist: 1.2, flare: 1.5, wall: 4.5, flatten: true }
+      },
+      {
+        id: 'm_crystal', name: '💎 Quartz Spires', builtin: true, mode: 'crystal', seed: 305.2, finish: 4, lowPoly: true,
+        params: { res: 32, scale: 1.0, capStyle: 'wizard', capRadius: 76, capHeight: 45, stemHeight: 75, stemBend: 10, gills: 0, warts: 14, cluster: true, ledCavity: false, barkDepth: 2.0, barkFreq: 12, twist: 0.5, flare: 1.25, wall: 4.0, flatten: true }
+      }
+    ];
+
+    let savedPresets = [];
+    let activePresetId = 'm_mushroom';
+
+    function loadPresets() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) { savedPresets = parsed; return; }
+        }
+      } catch (e) {}
+      savedPresets = JSON.parse(JSON.stringify(defaultPresets));
+    }
+
+    function savePresetsToDisk() {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(savedPresets)); } catch (e) {}
+    }
+
+    function renderPresetGrid() {
+      const grid = document.getElementById('preset-grid');
+      grid.innerHTML = '';
+      document.getElementById('preset-count-badge').textContent = `${savedPresets.length} saved`;
+
+      savedPresets.forEach((p) => {
+        const wrap = document.createElement('div');
+        wrap.className = 'preset-wrap';
+        const btn = document.createElement('button');
+        btn.className = 'preset-btn' + (p.id === activePresetId ? ' active' : '');
+        btn.textContent = p.name;
+        btn.addEventListener('click', () => applyPreset(p));
+        wrap.appendChild(btn);
+
+        if (!p.builtin) {
+          const del = document.createElement('button');
+          del.className = 'preset-del';
+          del.textContent = '✕';
+          del.addEventListener('click', (e) => {
+            e.stopPropagation();
+            savedPresets = savedPresets.filter(item => item.id !== p.id);
+            savePresetsToDisk();
+            renderPresetGrid();
+          });
+          wrap.appendChild(del);
+        }
+        grid.appendChild(wrap);
+      });
+    }
+
+    function readParams() {
+      return {
+        res: parseInt(document.getElementById('param-res').value, 10),
+        scale: parseFloat(document.getElementById('param-scale').value),
+        capStyle: document.getElementById('param-cap-style').value,
+        capRadius: parseFloat(document.getElementById('param-cap-radius').value),
+        capHeight: parseFloat(document.getElementById('param-cap-height').value),
+        stemHeight: parseFloat(document.getElementById('param-stem-height').value),
+        stemBend: parseFloat(document.getElementById('param-stem-bend').value),
+        gills: parseInt(document.getElementById('param-gills').value, 10),
+        warts: parseInt(document.getElementById('param-warts').value, 10),
+        cluster: document.getElementById('param-cluster').checked,
+        ledCavity: document.getElementById('param-led-cavity').checked,
+        barkDepth: parseFloat(document.getElementById('param-bark-depth').value),
+        barkFreq: parseInt(document.getElementById('param-bark-freq').value, 10),
+        twist: parseFloat(document.getElementById('param-twist').value),
+        flare: parseFloat(document.getElementById('param-flare').value),
+        wall: parseFloat(document.getElementById('param-wall').value),
+        flatten: document.getElementById('param-flatten').checked
+      };
+    }
+
+    function writeParams(p) {
+      document.getElementById('param-res').value = p.res;
+      document.getElementById('param-scale').value = p.scale;
+      document.getElementById('param-cap-style').value = p.capStyle;
+      document.getElementById('param-cap-radius').value = p.capRadius;
+      document.getElementById('param-cap-height').value = p.capHeight;
+      document.getElementById('param-stem-height').value = p.stemHeight;
+      document.getElementById('param-stem-bend').value = p.stemBend;
+      document.getElementById('param-gills').value = p.gills;
+      document.getElementById('param-warts').value = p.warts;
+      document.getElementById('param-cluster').checked = !!p.cluster;
+      document.getElementById('param-led-cavity').checked = !!p.ledCavity;
+      document.getElementById('param-bark-depth').value = p.barkDepth;
+      document.getElementById('param-bark-freq').value = p.barkFreq;
+      document.getElementById('param-twist').value = p.twist;
+      document.getElementById('param-flare').value = p.flare;
+      document.getElementById('param-wall').value = p.wall;
+      document.getElementById('param-flatten').checked = p.flatten !== false;
+    }
+
+    function applyPreset(preset) {
+      activePresetId = preset.id;
+      currentMode = preset.mode || 'mushroom';
+      customAICode = preset.customCode || null;
+      seedOffset = typeof preset.seed === 'number' ? preset.seed : 42.137;
+
+      if (typeof preset.finish === 'number' && finishes[preset.finish]) {
+        currentFinishIndex = preset.finish;
+        const f = finishes[currentFinishIndex];
+        standardMaterial.color.setHex(f.color);
+        standardMaterial.roughness = f.roughness;
+        standardMaterial.metalness = f.metalness;
+        document.getElementById('btn-mat-cycle').textContent = `🎨 ${f.name}`;
+      }
+
+      isLowPoly = !!preset.lowPoly;
+      standardMaterial.flatShading = isLowPoly;
+      standardMaterial.needsUpdate = true;
+      document.getElementById('btn-lowpoly').classList.toggle('active', isLowPoly);
+
+      if (preset.params) writeParams(preset.params);
+      renderPresetGrid();
+      updateModel();
+    }
+
+    // =========================================================================
+    // 5. AI PROMPT SYNTHESIZER & REBUILD PIPELINE
+    // =========================================================================
+    function generateWithBuiltInAI(promptText) {
+      const p = promptText.toLowerCase();
+      const params = readParams();
+      let hash = 17;
+      for (let i = 0; i < p.length; i++) hash = (hash * 31 + p.charCodeAt(i)) % 9973;
+      seedOffset = hash * 0.137 + 11.3;
+
+      if (p.includes('low poly') || p.includes('low-poly') || p.includes('faceted') || p.includes('geometric') || p.includes('crystal')) {
+        isLowPoly = true;
+        params.res = 24;
+      } else if (p.includes('smooth') || p.includes('high')) {
+        isLowPoly = false;
+        params.res = 96;
+      }
+
+      if (p.includes('crystal') || p.includes('quartz') || p.includes('spire') || p.includes('gem')) {
+        currentMode = 'crystal'; currentFinishIndex = 4; isLowPoly = true;
+      } else if (p.includes('lotus') || p.includes('succulent') || p.includes('pinecone') || p.includes('flower')) {
+        currentMode = 'lotus'; currentFinishIndex = 1;
+      } else if (p.includes('planter') || p.includes('pot') || p.includes('cup') || p.includes('holder') || p.includes('stump') || p.includes('bowl')) {
+        currentMode = 'planter'; currentFinishIndex = 0;
+      } else if (p.includes('log') || p.includes('branch') || p.includes('shelf')) {
+        currentMode = 'shelflog'; currentFinishIndex = 1;
+      } else if (p.includes('acorn') || p.includes('pod') || p.includes('nut') || p.includes('lantern')) {
+        currentMode = 'acorn'; currentFinishIndex = 0;
+      } else {
+        currentMode = 'mushroom'; currentFinishIndex = 2;
+      }
+
+      if (p.includes('witch') || p.includes('wizard') || p.includes('pointed') || p.includes('cone')) {
+        params.capStyle = 'wizard'; params.capHeight = 56;
+      } else if (p.includes('chanterelle') || p.includes('trumpet') || p.includes('funnel')) {
+        params.capStyle = 'chanterelle';
+      } else if (p.includes('flat') || p.includes('parasol') || p.includes('wide')) {
+        params.capStyle = 'parasol'; params.capRadius = 100;
+      }
+
+      if (p.includes('twist') || p.includes('spiral') || p.includes('gnarl')) {
+        params.twist = 1.8; params.stemBend = 20; params.barkDepth = 4.4;
+      }
+      if (p.includes('lamp') || p.includes('light') || p.includes('led')) {
+        params.ledCavity = true;
+      }
+
+      customAICode = null;
+      standardMaterial.flatShading = isLowPoly;
+      standardMaterial.needsUpdate = true;
+      document.getElementById('btn-lowpoly').classList.toggle('active', isLowPoly);
+
+      const f = finishes[currentFinishIndex];
+      standardMaterial.color.setHex(f.color);
+      document.getElementById('btn-mat-cycle').textContent = `🎨 ${f.name}`;
+
+      writeParams(params);
+      updateModel();
+      const cleanTitle = promptText.trim().slice(0, 22).replace(/\b\w/g, c => c.toUpperCase());
+      document.getElementById('input-preset-name').value = `✨ ${cleanTitle}`;
+    }
+
+    function updateModel() {
+      const params = readParams();
+
+      document.getElementById('val-res').textContent = `${params.res} segs`;
+      document.getElementById('val-scale').textContent = `${params.scale.toFixed(2)}x`;
+      document.getElementById('val-cap-radius').textContent = `${params.capRadius} mm`;
+      document.getElementById('val-cap-height').textContent = `${params.capHeight} mm`;
+      document.getElementById('val-stem-height').textContent = `${params.stemHeight} mm`;
+      document.getElementById('val-stem-bend').textContent = `${params.stemBend} mm`;
+      document.getElementById('val-gills').textContent = `${params.gills}`;
+      document.getElementById('val-warts').textContent = `${params.warts}`;
+      document.getElementById('val-bark-depth').textContent = `${params.barkDepth.toFixed(1)} mm`;
+      document.getElementById('val-bark-freq').textContent = `${params.barkFreq}`;
+      document.getElementById('val-twist').textContent = `${params.twist.toFixed(1)} rad`;
+      document.getElementById('val-flare').textContent = `${params.flare.toFixed(2)}x`;
+      document.getElementById('val-wall').textContent = `${params.wall.toFixed(1)} mm`;
+
+      let geometry;
+      try {
+        if (currentMode === 'custom_ai' && customAICode) {
+          const fn = new Function('THREE', 'params', 'mergeGeometries', 'smoothNoise3D', 'barkNoise', customAICode);
+          geometry = fn(THREE, params, mergeGeometries, smoothNoise3D, barkNoise);
+        } else if (currentMode === 'planter') {
+          geometry = buildBarkPlanter(params);
+        } else if (currentMode === 'shelflog') {
+          geometry = buildShelfFungiLog(params);
+        } else if (currentMode === 'acorn') {
+          geometry = buildAcornPod(params);
+        } else if (currentMode === 'crystal') {
+          geometry = buildCrystalCluster(params);
+        } else if (currentMode === 'lotus') {
+          geometry = buildLotusVessel(params);
+        } else {
+          const parts = [buildSingleMushroom(params, 1.0, 0, 0, 0)];
+          if (params.cluster) {
+            const d = params.capRadius * 0.24;
+            parts.push(buildSingleMushroom(params, 0.54, d, d * 0.5, -0.22));
+            parts.push(buildSingleMushroom(params, 0.42, -d * 0.85, d * 0.65, 0.26));
+          }
+          geometry = mergeGeometries(parts);
+        }
+      } catch (e) {
+        geometry = buildSingleMushroom(params, 1.0, 0, 0, 0);
+      }
+
+      if (params.scale !== 1.0) geometry.scale(params.scale, params.scale, params.scale);
+
+      if (params.flatten) {
+        const pos = geometry.attributes.position;
+        for (let i = 0; i < pos.count; i++) {
+          if (pos.getY(i) < 0.4) pos.setY(i, 0);
+        }
+        geometry.computeVertexNormals();
+      }
+
+      if (currentMesh) {
+        scene.remove(currentMesh);
+        currentMesh.geometry.dispose();
+      }
+
+      const activeMat = showOverhangs ? overhangMaterial : standardMaterial;
+      activeMat.wireframe = showWireframe;
+      currentMesh = new THREE.Mesh(geometry, activeMat);
+      scene.add(currentMesh);
+
+      geometry.computeBoundingBox();
+      const box = geometry.boundingBox;
+      const sx = (box.max.x - box.min.x).toFixed(0);
+      const sy = (box.max.z - box.min.z).toFixed(0);
+      const sz = (box.max.y - box.min.y).toFixed(0);
+      document.getElementById('stat-dims').textContent = `${sx} × ${sy} × ${sz} mm`;
+
+      const triCount = geometry.index ? geometry.index.count / 3 : geometry.attributes.position.count / 3;
+      document.getElementById('stat-tris').textContent = `${Math.round(triCount).toLocaleString()} tris`;
+
+      const approxVolCm3 = ((box.max.x - box.min.x) * (box.max.y - box.min.y) * (box.max.z - box.min.z)) / 1000;
+      const estGrams = Math.max(4, Math.round(approxVolCm3 * 0.28 * 0.35 * 1.24));
+      document.getElementById('stat-weight').textContent = `~${estGrams}g PLA`;
+    }
+
+    // =========================================================================
+    // 6. MOBILE SHARE SHEET & BINARY STL BUILDER
+    // =========================================================================
+    function createSTLBlob() {
+      const nonIndexedGeo = currentMesh.geometry.index
+        ? currentMesh.geometry.toNonIndexed()
+        : currentMesh.geometry.clone();
+
+      const posAttr = nonIndexedGeo.attributes.position;
+      const triCount = posAttr.count / 3;
+      const bufferLength = 80 + 4 + triCount * 50;
+      const arrayBuffer = new ArrayBuffer(bufferLength);
+      const view = new DataView(arrayBuffer);
+
+      const header = 'MycoWood 3D Mobile - Printable STL (Units: mm)';
+      for (let i = 0; i < 80; i++) view.setUint8(i, i < header.length ? header.charCodeAt(i) : 32);
+      view.setUint32(80, triCount, true);
+
+      let offset = 84;
+      const vA = new THREE.Vector3(), vB = new THREE.Vector3(), vC = new THREE.Vector3();
+      const cb = new THREE.Vector3(), ab = new THREE.Vector3();
+
+      for (let i = 0; i < triCount; i++) {
+        const i3 = i * 3;
+        vA.set(posAttr.getX(i3), -posAttr.getZ(i3), posAttr.getY(i3));
+        vB.set(posAttr.getX(i3 + 1), -posAttr.getZ(i3 + 1), posAttr.getY(i3 + 1));
+        vC.set(posAttr.getX(i3 + 2), -posAttr.getZ(i3 + 2), posAttr.getY(i3 + 2));
+        cb.subVectors(vC, vB); ab.subVectors(vA, vB); cb.cross(ab).normalize();
+
+        view.setFloat32(offset, cb.x, true); offset += 4;
+        view.setFloat32(offset, cb.y, true); offset += 4;
+        view.setFloat32(offset, cb.z, true); offset += 4;
+        view.setFloat32(offset, vA.x, true); offset += 4;
+        view.setFloat32(offset, vA.y, true); offset += 4;
+        view.setFloat32(offset, vA.z, true); offset += 4;
+        view.setFloat32(offset, vB.x, true); offset += 4;
+        view.setFloat32(offset, vB.y, true); offset += 4;
+        view.setFloat32(offset, vB.z, true); offset += 4;
+        view.setFloat32(offset, vC.x, true); offset += 4;
+        view.setFloat32(offset, vC.y, true); offset += 4;
+        view.setFloat32(offset, vC.z, true); offset += 4;
+        view.setUint16(offset, 0, true); offset += 2;
+      }
+      return new Blob([arrayBuffer], { type: 'application/sla' });
+    }
+
+    function downloadSTL() {
+      const blob = createSTLBlob();
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `mycowood-${currentMode}-${Date.now().toString().slice(-4)}.stl`;
+      link.click();
+    }
+
+    async function shareSTLMobile() {
+      const fileName = `mycowood-${currentMode}.stl`;
+      const blob = createSTLBlob();
+      const file = new File([blob], fileName, { type: 'application/sla' });
+
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({
+            title: 'MycoWood 3D Print Model',
+            text: '3D Printable STL generated in MycoWood 3D Mobile',
+            files: [file]
+          });
+          return;
+        } catch (err) {}
+      }
+      downloadSTL();
+    }
+
+    // =========================================================================
+    // 7. MOBILE NAVIGATION & EVENT LISTENERS
+    // =========================================================================
+    document.querySelectorAll('.nav-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(tab.dataset.tab).classList.add('active');
+      });
+    });
+
+    document.querySelectorAll('#drawer input[type="range"], #drawer input[type="checkbox"], #drawer select').forEach(el => {
+      if (el.id !== 'chk-wireframe') el.addEventListener('input', updateModel);
+    });
+
+    document.getElementById('chk-wireframe').addEventListener('change', (e) => {
+      showWireframe = e.target.checked;
+      updateModel();
+    });
+
+    document.getElementById('btn-lowpoly').addEventListener('click', (e) => {
+      isLowPoly = !isLowPoly;
+      standardMaterial.flatShading = isLowPoly;
+      standardMaterial.needsUpdate = true;
+      e.currentTarget.classList.toggle('active', isLowPoly);
+      updateModel();
+    });
+
+    document.getElementById('btn-overhang').addEventListener('click', (e) => {
+      showOverhangs = !showOverhangs;
+      e.currentTarget.classList.toggle('active', showOverhangs);
+      updateModel();
+    });
+
+    document.getElementById('btn-mat-cycle').addEventListener('click', (e) => {
+      currentFinishIndex = (currentFinishIndex + 1) % finishes.length;
+      const f = finishes[currentFinishIndex];
+      standardMaterial.color.setHex(f.color);
+      standardMaterial.roughness = f.roughness;
+      standardMaterial.metalness = f.metalness;
+      e.currentTarget.textContent = `🎨 ${f.name}`;
+    });
+
+    document.getElementById('btn-randomize').addEventListener('click', () => {
+      seedOffset = Math.random() * 500;
+      updateModel();
+    });
+
+    document.getElementById('btn-toggle-key').addEventListener('click', () => {
+      document.getElementById('api-key-drawer').classList.toggle('open');
+    });
+
+    document.getElementById('btn-ai-generate').addEventListener('click', () => {
+      const promptText = document.getElementById('ai-prompt').value.trim();
+      if (!promptText) {
+        document.getElementById('ai-status').textContent = 'Enter a prompt above first.';
+        return;
+      }
+      generateWithBuiltInAI(promptText);
+      document.getElementById('ai-status').textContent = '✅ Model generated! Tap 💾 Save below to keep it.';
+    });
+
+    document.getElementById('btn-save-preset').addEventListener('click', () => {
+      const nameInput = document.getElementById('input-preset-name');
+      const name = nameInput.value.trim() || `🌲 Custom #${savedPresets.length + 1}`;
+      const newPreset = {
+        id: 'mob_' + Date.now(),
+        name,
+        builtin: false,
+        mode: currentMode,
+        customCode: customAICode,
+        seed: seedOffset,
+        finish: currentFinishIndex,
+        lowPoly: isLowPoly,
+        params: readParams()
+      };
+      savedPresets.push(newPreset);
+      activePresetId = newPreset.id;
+      savePresetsToDisk();
+      renderPresetGrid();
+      nameInput.value = '';
+      document.getElementById('ai-status').textContent = `💾 Saved "${name}" to Presets!`;
+    });
+
+    document.getElementById('btn-export-presets').addEventListener('click', () => {
+      const blob = new Blob([JSON.stringify(savedPresets, null, 2)], { type: 'application/json' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'mycowood-mobile-presets.json';
+      link.click();
+    });
+
+    document.getElementById('btn-import-presets').addEventListener('click', () => {
+      document.getElementById('file-import-presets').click();
+    });
+
+    document.getElementById('file-import-presets').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          const imported = JSON.parse(ev.target.result);
+          if (Array.isArray(imported)) {
+            savedPresets = imported;
+            savePresetsToDisk();
+            renderPresetGrid();
+            if (savedPresets[0]) applyPreset(savedPresets[0]);
+          }
+        } catch (err) {}
+      };
+      reader.readAsText(file);
+    });
+
+    document.getElementById('btn-share-stl').addEventListener('click', shareSTLMobile);
+    document.getElementById('btn-export-stl').addEventListener('click', downloadSTL);
+    document.getElementById('btn-export-obj').addEventListener('click', () => {
+      const pos = currentMesh.geometry.attributes.position;
+      let out = '# MycoWood Mobile OBJ\n';
+      for (let i = 0; i < pos.count; i++) {
+        out += `v ${pos.getX(i).toFixed(3)} ${(-pos.getZ(i)).toFixed(3)} ${pos.getY(i).toFixed(3)}\n`;
+      }
+      if (currentMesh.geometry.index) {
+        const idx = currentMesh.geometry.index.array;
+        for (let i = 0; i < idx.length; i += 3) out += `f ${idx[i] + 1} ${idx[i + 1] + 1} ${idx[i + 2] + 1}\n`;
+      }
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(new Blob([out], { type: 'text/plain' }));
+      link.download = `mycowood-${currentMode}.obj`;
+      link.click();
+    });
+
+    window.addEventListener('resize', () => {
+      camera.aspect = container.clientWidth / container.clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(container.clientWidth, container.clientHeight);
+    });
+
+    loadPresets();
+    renderPresetGrid();
+    applyPreset(savedPresets[0]);
+
+    function animate() {
+      requestAnimationFrame(animate);
+      renderer.render(scene, camera);
+    }
+    animate();
+  </script>
+</body>
+</html>
